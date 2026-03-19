@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ALP Astrology - Management System</title>
+    <title>ALP Astrology - Parcel Management System</title>
+    <link rel="icon" type="image/png" href="https://www.alpastrology.org/static/media/hand.6bbbeeb61439eeec5ca5.webp">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -87,7 +88,7 @@
             <!-- Left Side: Login Card -->
             <div class="w-full max-w-[26rem] bg-white p-8 md:p-10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] shrink-0 mx-auto md:mx-0">
                 <div class="flex justify-center mb-4">
-                    <img src="https://ui-avatars.com/api/?name=ALP&background=fff&color=111&rounded=true&size=100&bold=true" alt="ALP Small Logo" class="w-20 h-20 object-contain rounded-full shadow-sm border border-slate-100">
+                    <img src="https://www.alpastrology.org/static/media/hand.6bbbeeb61439eeec5ca5.webp" alt="ALP Small Logo" class="w-20 h-20 object-contain rounded-full shadow-sm border border-slate-100">
                 </div>
                 <h2 class="text-[2.2rem] leading-none font-black text-center text-slate-900 mb-2 uppercase tracking-tighter">ALP Astrology</h2>
                 <p class="text-center text-slate-500 mb-8 text-sm">Sign in to manage student parcels</p>
@@ -115,7 +116,7 @@
 
             <!-- Right Side: Big Logo -->
             <div class="hidden md:flex flex-1 items-center justify-center">
-                <img src="https://ui-avatars.com/api/?name=ALP&background=fff&color=f43f5e&rounded=true&size=512&font-size=0.33&bold=true" alt="ALP Large Logo" class="w-full max-w-md object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-700">
+                <img src="https://www.alpastrology.org/static/media/hand.6bbbeeb61439eeec5ca5.webp" alt="ALP Large Logo" class="w-full max-w-md object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-700">
             </div>
             
         </div>
@@ -453,7 +454,7 @@
                         <!-- Pagination -->
                         <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between">
                             <span class="text-sm text-slate-500" id="pagination-info">Showing 0 of 0 results</span>
-                            <div class="flex gap-2">
+                            <div class="flex gap-2" id="pagination-controls">
                                 <button onclick="prevPage()" id="btn-prev" class="px-3 py-1 border border-slate-300 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50">Prev</button>
                                 <button onclick="nextPage()" id="btn-next" class="px-3 py-1 border border-slate-300 rounded text-slate-600 hover:bg-slate-100 disabled:opacity-50">Next</button>
                             </div>
@@ -1016,6 +1017,11 @@
             
             updateNameSuggestions();
             updateEvaluatorSuggestions();
+
+            // Refresh the screen automatically once data is fully loaded
+            if (!document.getElementById('view-dashboard').classList.contains('hidden')) updateDashboard();
+            if (!document.getElementById('view-records').classList.contains('hidden')) renderTable();
+            if (!document.getElementById('view-evaluations').classList.contains('hidden')) renderEvaluationsTable();
         }
 
         // --- AUTHENTICATION ---
@@ -1319,20 +1325,32 @@
                 return matchSearch && matchClass && matchType && matchStatus && matchDate;
             });
 
-            // Pagination
-            const totalPages = Math.ceil(filteredParcels.length / rowsPerPage) || 1;
-            
-            // Safety check: ensure currentPage is valid
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
+            // Pagination Logic
+            let paginated = [];
+            const paginationControls = document.getElementById('pagination-controls');
 
-            document.getElementById('btn-prev').disabled = currentPage <= 1;
-            document.getElementById('btn-next').disabled = currentPage >= totalPages;
-            
-            const startIdx = (currentPage - 1) * rowsPerPage;
-            const paginated = filteredParcels.slice(startIdx, startIdx + rowsPerPage);
-            
-            document.getElementById('pagination-info').innerText = `Showing ${filteredParcels.length === 0 ? 0 : startIdx + 1} to ${Math.min(startIdx + rowsPerPage, filteredParcels.length)} of ${filteredParcels.length} entries`;
+            if (currentUser.role === 'admin') {
+                // ADMIN ROLE: Show all records in a single scroll list
+                paginated = filteredParcels;
+                if (paginationControls) paginationControls.style.display = 'none'; // Hide Next/Prev buttons
+                document.getElementById('pagination-info').innerText = `Showing all ${filteredParcels.length} entries`;
+            } else {
+                // STAFF ROLE: Keep pagination (max 10 per page)
+                const totalPages = Math.ceil(filteredParcels.length / rowsPerPage) || 1;
+                
+                // Safety check: ensure currentPage is valid
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                document.getElementById('btn-prev').disabled = currentPage <= 1;
+                document.getElementById('btn-next').disabled = currentPage >= totalPages;
+                if (paginationControls) paginationControls.style.display = 'flex'; // Ensure buttons are visible
+                
+                const startIdx = (currentPage - 1) * rowsPerPage;
+                paginated = filteredParcels.slice(startIdx, startIdx + rowsPerPage);
+                
+                document.getElementById('pagination-info').innerText = `Showing ${filteredParcels.length === 0 ? 0 : startIdx + 1} to ${Math.min(startIdx + rowsPerPage, filteredParcels.length)} of ${filteredParcels.length} entries`;
+            }
 
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
